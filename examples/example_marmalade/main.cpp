@@ -1,35 +1,21 @@
-// Dear ImGui: standalone example application for Allegro 5
+// Dear ImGui: standalone example application for Marmalade
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 
-// On Windows, you can install Allegro5 using vcpkg:
-//   git clone https://github.com/Microsoft/vcpkg
-//   cd vcpkg
-//   bootstrap - vcpkg.bat
-//   vcpkg install allegro5 --triplet=x86-windows   ; for win32
-//   vcpkg install allegro5 --triplet=x64-windows   ; for win64
-//   vcpkg integrate install                        ; register include and libs in Visual Studio
+// Copyright (C) 2015 by Giovanni Zito
+// This file is part of Dear ImGui
 
-#include <stdint.h>
-#include <allegro5/allegro.h>
-#include <allegro5/allegro_primitives.h>
 #include "imgui.h"
-#include "imgui_impl_allegro5.h"
+#include "imgui_impl_marmalade.h"
+#include <stdio.h>
+
+#include <s3eKeyboard.h>
+#include <s3ePointer.h>
+#include <IwGx.h>
 
 int main(int, char**)
 {
-    // Setup Allegro
-    al_init();
-    al_install_keyboard();
-    al_install_mouse();
-    al_init_primitives_addon();
-    al_set_new_display_flags(ALLEGRO_RESIZABLE);
-    ALLEGRO_DISPLAY* display = al_create_display(1280, 720);
-    al_set_window_title(display, "Dear ImGui Allegro 5 example");
-    ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
-    al_register_event_source(queue, al_get_display_event_source(display));
-    al_register_event_source(queue, al_get_keyboard_event_source());
-    al_register_event_source(queue, al_get_mouse_event_source());
+    IwGxInit();
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -42,7 +28,7 @@ int main(int, char**)
     //ImGui::StyleColorsClassic();
 
     // Setup Platform/Renderer backends
-    ImGui_ImplAllegro5_Init(display);
+    ImGui_Marmalade_Init(true);
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -59,35 +45,27 @@ int main(int, char**)
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
 
+    // Our state
     bool show_demo_window = true;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
-    bool running = true;
-    while (running)
+    while (true)
     {
-        // Poll and handle events (inputs, window resize, etc.)
+        if (s3eDeviceCheckQuitRequest())
+            break;
+
+        // Poll and handle inputs
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
         // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
         // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-        ALLEGRO_EVENT ev;
-        while (al_get_next_event(queue, &ev))
-        {
-            ImGui_ImplAllegro5_ProcessEvent(&ev);
-            if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
-                running = false;
-            if (ev.type == ALLEGRO_EVENT_DISPLAY_RESIZE)
-            {
-                ImGui_ImplAllegro5_InvalidateDeviceObjects();
-                al_acknowledge_resize(display);
-                ImGui_ImplAllegro5_CreateDeviceObjects();
-            }
-        }
+        s3eKeyboardUpdate();
+        s3ePointerUpdate();
 
         // Start the Dear ImGui frame
-        ImGui_ImplAllegro5_NewFrame();
+        ImGui_Marmalade_NewFrame();
         ImGui::NewFrame();
 
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
@@ -129,16 +107,18 @@ int main(int, char**)
 
         // Rendering
         ImGui::Render();
-        al_clear_to_color(al_map_rgba_f(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w));
-        ImGui_ImplAllegro5_RenderDrawData(ImGui::GetDrawData());
-        al_flip_display();
+        IwGxSetColClear(clear_color.x * 255, clear_color.y * 255, clear_color.z * 255, clear_color.w * 255);
+        IwGxClear();
+        ImGui_Marmalade_RenderDrawData(ImGui::GetDrawData());
+        IwGxSwapBuffers();
+
+        s3eDeviceYield(0);
     }
 
     // Cleanup
-    ImGui_ImplAllegro5_Shutdown();
+    ImGui_Marmalade_Shutdown();
     ImGui::DestroyContext();
-    al_destroy_event_queue(queue);
-    al_destroy_display(display);
+    IwGxTerminate();
 
     return 0;
 }
